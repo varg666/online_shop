@@ -38,7 +38,6 @@ class Cart {
     return this.update();
   }
 
-
   removeItem(id) {
     console.log(id);
     //  check what is in cart exists using total
@@ -81,6 +80,7 @@ class Cart {
             <span class="item-quantity">Quantity: ${product.quantity}</span>
           </li>`);
         $('.total').text(`€ ${totalPrice}`);
+        $('.badge').text(`${totalQuantity}`);
       });
     }
     $('.removeItemButton').click((eventObj) => {
