@@ -8,50 +8,83 @@ class Cart {
   }
 
   addItem(product) {
+    let total = Object.keys(this.cart.products).length;
     //  check if cart exists using total
-    if (localStorage.getItem('total') === null) {
+    if (total === 0) {
       //  cart is empty - add first product
-      localStorage.setItem('total', 1);
+      total += 1;
     } else {
-      //  cart exists - retrive it and prepare to add
-      const total = parseInt(localStorage.getItem('total'), 10);
-      localStorage.setItem('total', total + 1);
-      //  TODO: retrieve stored products
-    }
-    // TODO: add products to cart
-    console.log(product);
+      total += 1;
 
-    $('.badge').text(localStorage.getItem('total'));
-    $('.shopping-cart').show();
+      //  cart exists - retrive it and prepare to add
+
+      const storedProducts = JSON.parse(localStorage.getItem('cart'));
+      this.cart.products = storedProducts;
+      $.map(this.cart.products, (storedProduct) => {
+        if (storedProduct.id === product.id) {
+          this.removeItem(product.id);
+          console.log(product.quantity);
+          // eslint-disable-next-line no-param-reassign
+          product.quantity = storedProduct.quantity + 1;
+          console.log(product.quantity);
+        }
+      });
+    }
+    //  add product to cart
+    this.cart.products.push(product);
+    localStorage.setItem('cart', JSON.stringify(this.cart.products));
+    $('.badge').text(total);
+
     return this.update();
   }
 
+
   removeItem(id) {
-    //  check what is in cart exists using total
-    const total = parseInt(localStorage.getItem('total'), 10);
-    localStorage.setItem('total', total - 1);
-    //  TODO: retrieve stored products
     console.log(id);
+    //  check what is in cart exists using total
+    //  retrieve stored products
+    const storedProducts = JSON.parse(localStorage.getItem('cart'));
+    console.log(storedProducts);
+    this.cart.products = storedProducts.filter(product => product.id !== id);
+    localStorage.setItem('cart', JSON.stringify(this.cart.products));
     return this.update();
   }
 
   update() {
+    const total = Object.keys(this.cart.products).length;
     //  update badge and show/hide cart container
-    if (localStorage.getItem('total') === null) {
+    if (total === 0) {
       $('.badge').text(0);
       $('.badge').hide();
       $('.shopping-cart').hide();
       $('.cart').hide();
     } else {
-      $('.badge').text(localStorage.getItem('total'));
+      $('.badge').text(total);
       $('.badge').show();
       $('.cart').show();
       // updating items in cart
       $('.shopping-cart-items').empty();
-      //  TODO: update the items list here...
+      const storedProducts = JSON.parse(localStorage.getItem('cart'));
+      let totalPrice = 0;
+      let totalQuantity = 0;
+      storedProducts.forEach((product) => {
+        totalQuantity += parseInt(product.quantity, 10);
+        totalPrice += parseInt(product.price, 10) * parseInt(product.quantity, 10);
+        $('.shopping-cart-items').append(`
+          <li class="clearfix">
+            <button type="button" class="close removeItemButton" aria-label="Close" data-id="${product.id}">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <img class="cart-img" src="/static/assets/images/0${product.catid}.jpg" alt="${product.name}" />
+            <span class="item-name">${product.name}</span>
+            <span class="item-price">€ ${product.price}</span>
+            <span class="item-quantity">Quantity: ${product.quantity}</span>
+          </li>`);
+        $('.total').text(`€ ${totalPrice}`);
+      });
     }
     $('.removeItemButton').click((eventObj) => {
-      //  console.log('removing');
+      console.log('removing');
       //  define obj
       const { target } = eventObj;
       //  chrome / ff see different things!
@@ -62,7 +95,7 @@ class Cart {
   }
   clear() {
     localStorage.clear();
-    // TODO: empty this.cart.products
+    this.cart.products = [];
     this.update();
     return this;
   }
