@@ -7,10 +7,12 @@ const cors = require('cors');
 const mysql = require('mysql');
 
 const frontendDirectoryPath = path.resolve(__dirname, './../static');
+
 console.log('static resource at: ' + frontendDirectoryPath);
 app.use(express.static(frontendDirectoryPath));
 app.use(cors());
 app.use(express.json());
+
 // avoid hardcoded DB connection information at ALL COSTS!
 // use the following command to start your server:
 // MYSQL_PASSWORD=P455w0rd MYSQL_USER=root MYSQL_DB=x_shop npm run start-express-dev
@@ -18,7 +20,8 @@ const {
 	MYSQL_PASSWORD = '',
 	MYSQL_USER = 'root',
 	MYSQL_DB = 'online_shop',
-} = process.env;	
+} = process.env;
+
 console.info('MYSQL: user "%s", db "%s", pass length %s', MYSQL_USER, MYSQL_DB, MYSQL_PASSWORD.length);
 var con = mysql.createConnection({
 	host: 'localhost',
@@ -26,6 +29,8 @@ var con = mysql.createConnection({
 	password: MYSQL_PASSWORD,
 	database: MYSQL_DB
 });
+
+
 // always want to have /api in the beginning
 const apiRouter = new Router();
 app.use('/api', apiRouter);
@@ -42,6 +47,7 @@ apiRouter.get('/products', (req, res, next) => {
 		res.json( rows );
 	});
 });
+
 apiRouter.get('/products', (req, res, next) => {
 	con.query('select * from products', function(err, rows) {
 		if (err) return next(err);
@@ -50,6 +56,7 @@ apiRouter.get('/products', (req, res, next) => {
 		res.json( rows );
 	});
 });
+
 apiRouter.get('/categories', (req, res, next) => {
 	con.query('select * from product_categories', function(err, rows) {
 		if (err) return next(err);
@@ -67,6 +74,7 @@ apiRouter.get('/customers', function(req, res, next) {
 		res.json( rows );
 	});
 });
+
 apiRouter.get('/payment_methods', function(req, res, next) {
 	con.query('select * from payment_method', function(err, rows) {
 		if (err) return next(err);
@@ -86,6 +94,7 @@ apiRouter.put('/activate/:userid', function(req, res, next) {
 		res.json( rows );
 	});
 });
+
 apiRouter.post('/user', function(req, res, next) {
 
 	con.query('select * from customers where email = ?',
@@ -109,20 +118,22 @@ apiRouter.post('/user', function(req, res, next) {
 					  req.body.email
 					],
 					function(err, rows) {
-						if (err) return next(err);
+					  if (err) return next(err);
 
-						res.json( rows );
-					  }
-				  );
-			  }
-		  });
-  });
-  
-  apiRouter.post('/order', function(req, res, next) {
+					  res.json( rows );
+					}
+				);
+			}
+		});
+});
+
+apiRouter.post('/order', function(req, res, next) {
 	/* postpone to january ...
 	con.query('insert into orders (customer_id, payment_id, created, paid) values (?, ?, now(), NULL)', [req.body.customerid, req.body.payment_id], function(err, rows) {
+
 		const newOrderId = rows.insertId;
 		var sql = 'insert into order_details () values ';
+
 		res.json(rows);
 	});
 	*/
@@ -134,6 +145,7 @@ apiRouter.post('/user', function(req, res, next) {
 			res.json({success:'order saved'});
 		});
 });
+
 apiRouter.put('/user/:userid', function(req, res, next) {
 	console.log('userid: ' + req.params.userid);
 	var sql = 'update customers set ';
@@ -159,6 +171,7 @@ apiRouter.put('/user/:userid', function(req, res, next) {
 		res.json( rows );
 	});
 });
+
 apiRouter.delete('/user/:userid', function(req, res, next) {
 	con.query('update customers set deleted = now() where id = ?', [req.params.userid],
 		function(err, rows) {
@@ -179,7 +192,8 @@ apiRouter.use(function (err, req, res, next) {
 	console.warn('Error occured for "%s":\n%s', req.url, err.stack);
 	res.json(err);
 });
-	// avoid starting server if the connection to the DB cannot be established
+
+// avoid starting server if the connection to the DB cannot be established
 con.connect(function (err) {
 	if (err) throw err;
 
