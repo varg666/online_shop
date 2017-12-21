@@ -6,6 +6,10 @@
   "scripts": {
     "build": "neutrino build",
     "start": "neutrino start",
+    "start-express": "node src/server/app.js",
+    "start-express-dev": "nodemon src/server/app.js",
+    "dump-database": "mysqldump -uroot -p online_shop > ./home/varg/Desktop/New/onlline_shop/DB",
+    "import-database": "mysql -uroot -p online_shop < ./home/varg/Desktop/New/onlline_shop/DB",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -24,13 +28,19 @@
     "neutrino-middleware-styles-loader": "0.0.6",
     "neutrino-preset-airbnb-base": "^7.3.3",
     "neutrino-preset-web": "^7.3.3",
+    "nodemon": "^1.13.3",
     "sass-loader": "^6.0.6"
   },
   "dependencies": {
     "bootstrap": "^4.0.0-beta.2",
+    "express": "^4.16.2",
     "jquery": "^3.2.1",
+    "mysql": "^2.15.0",
     "node-sass": "^4.7.2",
+    "path": "^0.12.7",
     "popper.js": "^1.13.0",
+    "cors": "^2.8.4",
+    "request": "^2.83.0",
     "webpack": "^2.7.0"
   }
 }
