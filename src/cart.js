@@ -2,73 +2,66 @@ import $ from 'jquery';
 
 class Cart {
   constructor() {
-    $('.shopping-cart').hide();
     this.cart = {};
     this.cart.products = [];
   }
 
   addItem(product) {
-    let total = Object.keys(this.cart.products).length;
     //  check if cart exists using total
+    let total = Object.keys(this.cart.products).length;
     if (total === 0) {
       //  cart is empty - add first product
       total += 1;
     } else {
-      total += 1;
-
       //  cart exists - retrive it and prepare to add
-
+      // total = Object.keys(this.cart.products).length;
+      total += 1;
       const storedProducts = JSON.parse(localStorage.getItem('cart'));
       this.cart.products = storedProducts;
-      $.map(this.cart.products, (storedProduct) => {
+      //  check if the product is already in the cart
+      $.map(this.cart.products, ((storedProduct) => {
         if (storedProduct.id === product.id) {
           this.removeItem(product.id);
-          console.log(product.quantity);
           // eslint-disable-next-line no-param-reassign
           product.quantity = storedProduct.quantity + 1;
-          console.log(product.quantity);
         }
-      });
+      }));
     }
     //  add product to cart
     this.cart.products.push(product);
     localStorage.setItem('cart', JSON.stringify(this.cart.products));
-    $('.badge').text(total);
-
     return this.update();
   }
 
   removeItem(id) {
-    console.log(id);
-    //  check what is in cart exists using total
     //  retrieve stored products
     const storedProducts = JSON.parse(localStorage.getItem('cart'));
-    console.log(storedProducts);
     this.cart.products = storedProducts.filter(product => product.id !== id);
     localStorage.setItem('cart', JSON.stringify(this.cart.products));
     return this.update();
   }
 
   update() {
-    const total = Object.keys(this.cart.products).length;
     //  update badge and show/hide cart container
-    if (total === 0) {
+    if (localStorage.getItem('cart') === null) {
       $('.badge').text(0);
       $('.badge').hide();
       $('.shopping-cart').hide();
       $('.cart').hide();
     } else {
-      $('.badge').text(total);
+      $('.badge').text(Object.keys(this.cart.products).length);
       $('.badge').show();
+      $('.shopping-cart').show();
       $('.cart').show();
       // updating items in cart
       $('.shopping-cart-items').empty();
-      const storedProducts = JSON.parse(localStorage.getItem('cart'));
+      const storedProducts = this.cart.products;
       let totalPrice = 0;
       let totalQuantity = 0;
       storedProducts.forEach((product) => {
         totalQuantity += parseInt(product.quantity, 10);
         totalPrice += parseInt(product.price, 10) * parseInt(product.quantity, 10);
+        $('.badge').text(product.quantity);
         $('.shopping-cart-items').append(`
           <li class="clearfix">
             <button type="button" class="close removeItemButton" aria-label="Close" data-id="${product.id}">
@@ -84,7 +77,6 @@ class Cart {
       });
     }
     $('.removeItemButton').click((eventObj) => {
-      console.log('removing');
       //  define obj
       const { target } = eventObj;
       //  chrome / ff see different things!
@@ -94,7 +86,7 @@ class Cart {
     return this;
   }
   clear() {
-    localStorage.clear();
+    localStorage.removeItem('cart');
     this.cart.products = [];
     this.update();
     return this;

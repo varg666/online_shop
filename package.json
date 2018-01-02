@@ -8,8 +8,8 @@
     "start": "neutrino start",
     "start-express": "node src/server/app.js",
     "start-express-dev": "nodemon src/server/app.js",
-    "dump-database": "mysqldump -uroot -p online_shop > ./home/varg/Desktop/New/onlline_shop/DB",
-    "import-database": "mysql -uroot -p online_shop < ./home/varg/Desktop/New/onlline_shop/DB",
+    "dump-database": "mysqldump -uroot -p online_shop > ./database/online_shop.sql",
+    "import-database": "mysql -uroot -p online_shop < ./database/online_shop.sql",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
