@@ -1,0 +1,17 @@
+# Install bcryptjs
+
+npm i bcryptjs --save
+
+(remove bcrypt if you have it in package.json)
+
+# Hash the password in the index.js -> sign in form on submit
+
+# Use console.log to print out the hash 
+
+# in the BE endpoint for '/login'
+
+=> SQL Statement: we will search for email and use the rows[0] data
+=> Compare the stored password with the submitted hash
+=> I used the callback of compareSync
+
+=> Check if the result is positive ...

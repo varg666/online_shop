@@ -5,8 +5,13 @@ const Router = express.Router;
 const app = express();
 const cors = require('cors');
 const mysql = require('mysql');
+const mailnotifier = require('./mailnotifier');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const randomstring = require('randomstring');
 
 const frontendDirectoryPath = path.resolve(__dirname, './../static');
+const serverSignature = 'my_secret_signature';
 
 console.log('static resource at: ' + frontendDirectoryPath);
 app.use(express.static(frontendDirectoryPath));
@@ -16,18 +21,25 @@ app.use(express.json());
 // avoid hardcoded DB connection information at ALL COSTS!
 // use the following command to start your server:
 // MYSQL_PASSWORD=P455w0rd MYSQL_USER=root MYSQL_DB=x_shop npm run start-express-dev
-const {
-	MYSQL_PASSWORD = '',
-	MYSQL_USER = 'root',
-	MYSQL_DB = 'online_shop',
-} = process.env;
 
-console.info('MYSQL: user "%s", db "%s", pass length %s', MYSQL_USER, MYSQL_DB, MYSQL_PASSWORD.length);
+let shopConfigPath = process.env.HOME + '/.online-shop.json';
+let shopConfig = null;
+
+console.log(shopConfigPath);
+
+if(!fs.existsSync(shopConfigPath)) {
+  console.log('Online-Shop config file was not found. Server stops.');
+  process.exit();
+} else {
+  shopConfig = require(shopConfigPath);
+}
+
+console.info('MYSQL: user "%s", db "%s", pass length %s', shopConfig.mysql_usr, shopConfig.mysql_db, shopConfig.mysql_pwd.length);
 var con = mysql.createConnection({
-	host: 'localhost',
-	user: MYSQL_USER,
-	password: MYSQL_PASSWORD,
-	database: MYSQL_DB
+  host: 'localhost',
+  user: shopConfig.mysql_usr,
+  password: shopConfig.mysql_pwd,
+  database: shopConfig.mysql_db
 });
 
 
@@ -36,190 +48,392 @@ const apiRouter = new Router();
 app.use('/api', apiRouter);
 
 apiRouter.get('/', (req, res) => {
-	res.send({'shop-api': '1.0'});
+  res.send({'shop-api': '1.0'});
 });
 
 apiRouter.get('/products', (req, res, next) => {
-	con.query('select * from products', function(err, rows) {
-		if (err) return next(err);
+  con.query('select * from products', function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
 });
 
 apiRouter.get('/products', (req, res, next) => {
-	con.query('select * from products', function(err, rows) {
-		if (err) return next(err);
+  con.query('select * from products', function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
 });
 
 apiRouter.get('/categories', (req, res, next) => {
-	con.query('select * from product_categories', function(err, rows) {
-		if (err) return next(err);
+  con.query('select * from product_categories', function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
 });
 
 apiRouter.get('/customers', function(req, res, next) {
-	con.query('select * from customers where active = 1', function(err, rows) {
-		if (err) return next(err);
+  con.query('select * from customers where active = 1', function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
 });
 
 apiRouter.get('/payment_methods', function(req, res, next) {
-	con.query('select * from payment_method', function(err, rows) {
-		if (err) return next(err);
+  con.query('select * from payment_method', function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
 });
 
-apiRouter.put('/activate/:userid', function(req, res, next) {
-	con.query('update customers set active = ? where id = ?',
-		[req.body.status, req.params.userid],
-		function(err, rows) {
-		if (err) return next(err);
+apiRouter.put('/activate/:activationcode', function(req, res, next) {
+  con.query('update customers set active = 1 where activationcode = ?',
+    [req.params.activationcode],
+    function(err, rows) {
+    	if (err) 
+    		return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    	console.log(rows);    	
+   		if(rows.affectedRows > 0) {
+   			return res.json({ error: 0 });
+   		}
+   		else {
+   			return res.json({ error: 1 });	
+   		}
+  });
 });
 
+function ensureToken(req, res, next) {
+	console.log('arrived at middleware ensureToken for /protected');
+	const bearerHeader = req.headers['authorization'];
+	if(typeof bearerHeader !== "undefined") {
+		const bearer = bearerHeader.split(" ");
+		const bearerToken = bearer[1];
+		req.token = bearerToken;
+		next();
+	} else {
+		res.sendStatus(403);
+	}
+}
+
+function isAuthorized(req, res, next) {
+	jwt.verify(req.token, serverSignature, function(err, data) {
+		if(err)
+			res.send(403);
+		else {
+			next();
+		}
+	});
+}
+
+/*
 apiRouter.post('/user', function(req, res, next) {
+  con.query('select * from customers where email = ?',
+    [req.body.email],
+    function(err, rows) {
+      if (err) return next(err);
 
-	con.query('select * from customers where email = ?',
-		[req.body.email],
-		function(err, rows) {
-			if (err) return next(err);
+      if( rows.length > 0 ) {
+        res.json({error: 'Email already exists.'});
+      }
+      else {
+        con.query(`insert into customers (firstname, lastname, birthdate, phone, city, street, email)
+          values (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            req.body.firstname,
+            req.body.lastname,
+            req.body.birthdate,
+            req.body.phone,
+            req.body.city,
+            req.body.street,
+            req.body.email
+          ],
+          function(err, rows) {
+            if (err) return next(err);
 
-			if( rows.length > 0 ) {
-				res.json({error: 'Email already exists.'});
-			}
-			else {
-				con.query(`insert into customers (firstname, lastname, birthdate, phone, city, street, email)
-					values (?, ?, ?, ?, ?, ?, ?)`,
-					[
-					  req.body.firstname,
-					  req.body.lastname,
-					  req.body.birthdate,
-					  req.body.phone,
-					  req.body.city,
-					  req.body.street,
-					  req.body.email
-					],
-					function(err, rows) {
-					  if (err) return next(err);
+            res.json( rows );
+          }
+        );
+      }
+    });
+});
+*/ 
+apiRouter.post('/login', function(req, res) {
+  console.log(req.body);
+  if(!req.body.email || !req.body.password)
+    return res.json({ err: 'username and password required'});
 
-					  res.json( rows );
-					}
-				);
-			}
-		});
+  con.query('select * from customers where email = ?', 
+    [req.body.email], function(err, rows) {
+    if (err) return res.json( {err: 'Internal error happened'} );
+    if(rows.length > 0)	{
+        bcrypt.compare(req.body.password, rows[0].pwd, function(err, hashRes) {
+	        if(hashRes) {
+		        const token = jwt.sign({email: rows[0].email, pwd: rows[0].pwd}, serverSignature);    
+		        const user = rows[0];
+		        user.token = token;
+		        delete user.pwd;  // do not send back the password
+		        return res.json(user);
+		    }
+		    else {
+		    	return res.json({ err: 'password incorrect' });
+		    }
+	    });
+    } 
+    else {
+      console.log("ERROR: password don't match");
+      return res.json( {err: 'Username does not exist'});
+    }
+  }); 
 });
 
-apiRouter.post('/order', function(req, res, next) {	
-	
-	console.log('RECEIVING: ' + JSON.stringify(req.body));
+apiRouter.post('/register', function(req, res) {
+  console.log(req.body);
+  if(!req.body.email || !req.body.password)
+    return res.json({ err: 'username and password required'});
 
-	con.query('insert into orders (customer_id, payment_id, created, paid) values (?, ?, now(), NULL)', [req.body.user.id, req.body.payment_method], function(err, rows) {
-			if(err) {
-				return res.json({err: err});
-			}
+  con.query('select * from customers where email = ?',
+    [req.body.email],
+    function(err, rows, next) {
+      if (err) return next(err);
 
-			const newOrderId = rows.insertId;
-			let sql = "insert into order_details (order_id, product_id, price) values ";
+      if( rows.length > 0 ) {
+        return res.json({err: 'User with this email already exists.'});
+      }
+      else {
+        const activationCode = randomstring.generate(20);
+		bcrypt.hash(req.body.password, 0, function(err, pwdHash) {
+        	con.query(`insert into customers (firstname, lastname, birthdate, city, street, postal, email, phone, pwd, active, activationcode)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, '0', ?)`,
+          [
+            req.body.firstname,
+            req.body.lastname,
+            req.body.birthdate,
+            req.body.city,
+            req.body.street,
+            req.body.postal,
+            req.body.email,
+            req.body.phone,
+            pwdHash,
+            activationCode
+          ],
+          function(err, rows) {
+            if (err){
+              res.json({err: 'Error creating user. '+err}) 
+            } 
+            else {
+		        console.log('sending email to: ' + req.body.email);
+		        if(shopConfig.mailnotifications === "1") {
+		        	mailnotifier.sendMail(
+			        		req.body.email, 
+			        		'Your Registration at Devugees-Shop', 
+			        		'Hallo ' + req.body.firstname + ', '
+			        		+ 'in order to complete your registration, please follow'
+			        		+ 'this link here: http://localhost:5000/activate=' + activationCode
+		        		);
+		    	}
 
-			for(let i=0; i<req.body.products.length; i++) {
-				const p = req.body.products[i];
-				let values = "("+newOrderId+", "+p.id+", "+p.price+")";
-				sql += values;
-				if(i<req.body.products.length-1) {
-					sql += ','
-				}
-			}
+		    	res.json({ error: 0 });
+		    }
 
-			con.query(sql, function(err, rows) {
-				if(err) {
-					return res.json({err: err});
-				}	
-
-				return res.json({success: rows})		
-			});
-
+              /*
+              const token = jwt.sign({email: req.body.email, pwd: req.body.pwd}, serverSignature);    
+              req.body.token = token;
+              delete req.body.pwd;  // do not send back the password
+              return res.json(req.body);
+              res.json( req.body );
+              */
+          });
 		});
-	/*
-	fs.writeFile(path.resolve(__dirname, './../orders/orders'+Date.now()+'.txt'), JSON.stringify(req.body),
-		(err) => {
-			if (err) return next(err);
+      }
+    });
+});
 
-			res.json({success:'order saved'});
-		});
-	*/
+
+apiRouter.post('/update', function(req, res, next) {
+  console.log(req.body);
+  if(!req.body.email || !req.body.id)
+    return res.json({ err: 'username and password required'});
+
+  var pwd = bcrypt.hashSync(req.body.password, 0);
+  req.body.pwd = pwd;
+  delete req.body.password;
+
+  con.query('select * from customers where id = ?', 
+    [req.body.id], function(err, rows) {
+    if (err) return res.json( {err: 'Internal error happened'} );
+    if(rows.length > 0) {
+        //update
+        var sql = 'update customers set ';
+        var i = 1;
+        var bodyLength = Object.keys(req.body).length;
+        var values = [];
+        for(var field in req.body) {
+          sql += field + ' = ?';
+          if(i < bodyLength)
+            sql += ',';
+          i++;
+          values.push( req.body[field] );
+        }
+
+        sql += ' where id = ?';
+        values.push( req.body.id );
+        con.query(sql,
+          values,
+          function(err, rows) {
+          if (err) return next(err);
+
+          console.log( "Done" );
+          res.json( req.body );
+        });
+    } 
+    else {
+      console.log("ERROR: password don't match");
+      return res.json( {err: 'Username does not exist'});
+    }
+  }); 
+});
+
+apiRouter.post('/order', ensureToken, isAuthorized, function(req, res, next) {   
+  console.log('RECEIVING: ' + JSON.stringify(req.body));
+  con.query('insert into orders (customer_id, payment_id, created, paid) values (?, ?, now(), NULL)', [req.body.user.id, req.body.payment_method], function(err, rows) {
+      if(err) {
+        return res.json({err: err});
+      }
+
+      const newOrderId = rows.insertId;
+      let sql = "insert into order_details (order_id, product_id, price) values ";
+
+      let orderValue = 0;
+      for(let i=0; i<req.body.products.length; i++) {
+        const p = req.body.products[i];
+        let values = "("+newOrderId+", "+p.id+", "+p.price+")";
+        sql += values;
+        if(i < req.body.products.length - 1) {
+          sql += ','
+        }
+
+        orderValue += parseInt(p.price) * parseInt(p.quantity);
+      }
+
+
+      con.query(sql, function(err, rows) {
+        if(err) {
+          return res.json({err: err});
+        } 
+        
+        // here sendMail
+        let text = `Dear ${req.body.user.name},
+              Thank you for your order of ${orderValue}.
+              We which you a nice day.
+              Your Devugees-Shop Team.`;
+
+        if(shopConfig.mailnotifications === "1") {
+        mailnotifier.sendMail(req.body.user.email, 'Your Order at Devugees-Shop', text);
+        }
+        return res.json({success: rows})    
+      });
+
+    });
+  /*
+  fs.writeFile(path.resolve(__dirname, './../orders/orders'+Date.now()+'.txt'), JSON.stringify(req.body),
+    (err) => {
+      if (err) return next(err);
+
+      res.json({success:'order saved'});
+    });
+  */
 });
 
 apiRouter.put('/user/:userid', function(req, res, next) {
-	console.log('userid: ' + req.params.userid);
-	var sql = 'update customers set ';
-	var i = 1;
-	var bodyLength = Object.keys(req.body).length;
-	var values = [];
-	for(var field in req.body) {
-		sql += field + ' = ?';
-		if(i < bodyLength)
-			sql += ',';
-		i++;
-		values.push( req.body[field] );
-	}
+  console.log('userid: ' + req.params.userid);
+  var sql = 'update customers set ';
+  var i = 1;
+  var bodyLength = Object.keys(req.body).length;
+  var values = [];
+  for(var field in req.body) {
+    sql += field + ' = ?';
+    if(i < bodyLength)
+      sql += ',';
+    i++;
+    values.push( req.body[field] );
+  }
 
-	sql += ' where id = ?';
-	values.push( req.params.userid );
-	con.query(sql,
-		values,
-		function(err, rows) {
-		if (err) return next(err);
+  sql += ' where id = ?';
+  values.push( req.params.userid );
+  con.query(sql,
+    values,
+    function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
+});
+
+apiRouter.post('/resetpassword', function(req, res) {
+	if(!req.body.email)
+		return res.json( {error: 'Email required'} );
+
+	const resetCode = randomstring.generate(20);
+  	con.query('select * from customers where email = ?', [req.body.email],
+    function(err, rows) {
+    	if (err) return res.json({err: err});
+
+    	if(rows.length > 0) {
+			con.query('insert into passwordreset (email, resetcode) values (?, ?)', 
+				[req.body.email, resetCode],
+    		function(err, rows) {    		
+    			if(err) return res.json({err:err});
+
+    			return res.json( {err: 0} );
+    		});
+
+			mailnotifier.sendMail(req.body.email, 'Your Password Reset',
+				'In order to reset your password, please follow this link: http://localhost:5000/resetpassword=' + resetCode);
+
+    	}
+  });	
+
 });
 
 apiRouter.delete('/user/:userid', function(req, res, next) {
-	con.query('update customers set deleted = now() where id = ?', [req.params.userid],
-		function(err, rows) {
-		if (err) return next(err);
+  con.query('update customers set deleted = now() where id = ?', [req.params.userid],
+    function(err, rows) {
+    if (err) return next(err);
 
-		console.log( rows );
-		res.json( rows );
-	});
+    console.log( rows );
+    res.json( rows );
+  });
 });
 
 apiRouter.use(function(req, res, next) {
-	const err = new Error('Not Found');
-	err.code = 404;
-	next(err);
+  const err = new Error('Not Found');
+  err.code = 404;
+  next(err);
 });
 
 apiRouter.use(function (err, req, res, next) {
-	console.warn('Error occured for "%s":\n%s', req.url, err.stack);
-	res.json(err);
+  console.warn('Error occured for "%s":\n%s', req.url, err.stack);
+  res.json(err);
 });
 
 // avoid starting server if the connection to the DB cannot be established
 con.connect(function (err) {
-	if (err) throw err;
+  if (err) throw err;
 
-	app.listen( 9090, (err) => {
-		if(err) throw err;
-		console.log('Server started on port 9090');
-	});
+  app.listen( 9090, (err) => {
+    if(err) throw err;
+    console.log('Server started on port 9090');
+  });
 });

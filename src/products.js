@@ -1,3 +1,4 @@
+/* eslint-disable */
 import $ from 'jquery';
 import Cart from './cart';
 import cardTemplate from './templates/card-template.html';
@@ -19,7 +20,7 @@ export function mkProductCard(product) {
 export default function refreshProducts(products, type) {
   const cart = new Cart();
   // used to force clean during development
-  cart.clear();
+  // cart.clear();
   cart.update();
   $('#products-grid').empty();
   $('#products-grid').append('<div class="row"></div>');
@@ -44,6 +45,16 @@ export default function refreshProducts(products, type) {
   $('.detailsButton').click((eventObj) => {
     // define obj
     const { target } = eventObj;
+
+    const productId = target.getAttribute('data-id');
+    var description = null;
+    for(let i=0;i<products.length;i++) {
+      if(products[i].id == productId) {
+        description = products[i].description;
+      }
+    }
+    $('.modal-lorem').text(description);
+
     //  replace text with jquery retriving data from dom
     $('.modal-title').text(`More info about ${target.getAttribute('data-name')}`);
     $('.modal-image').attr('src', `./static/assets/images/0${target.getAttribute('data-catid')}.jpg`);

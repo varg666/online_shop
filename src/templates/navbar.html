@@ -19,12 +19,119 @@
   </form> -->
 
    <div class="right">
+    <ul class="user-signed-nav">
+      <li class="user-signed" id="user-signed">
+        <a href="#" id="user-signed-link" class="user"><i class="fa fa-user"></i> <span class="logged">[USERNAME]</span></a>
+      </li>
+    </ul>
+    <ul class="user-signout-nav">
+      <li class="user-signout" id="user-signout">
+        <a href="#" id="user-signout-link" class="user"><i class="fa fa-sign-out"></i> <span class="signout">Logout</span></a>
+      </li>
+    </ul>
+    <ul class="user-signin-nav">
+      <li class="user-signin" id="user-enter">
+        <a href="#" id="user-signin-link" class="user"><i class="fa fa-sign-in"></i> <span class="signin">Login</span></a>
+      </li>
+    </ul>
+    <ul class="user-signup-nav">
+      <li class="user-signup" id="user-signup">
+        <a href="#" id="user-signup-link" class="user"><i class="fa fa-user"></i> <span class="signup">Register</span></a>
+      </li>
+    </ul>
     <ul class="shopping-nav">
       <li class="cart">
         <a href="#" id="cart" class="cart"><i class="fa fa-shopping-cart"></i> Cart <span class="badge">0</span></a>
     </ul>
-    </div>
+  </div>
 </nav>
+
+<div class="user-login">
+  <div class="user-login-header">
+    <form id="form-signin" class="form-signin">
+      <h3>Sign-in</h3>
+      <label for="inputEmail" class="sr-only">Email address</label>
+      <input type="email" name="email" id="inputEmailSignin" class="form-control" placeholder="Email address" required>
+      <label for="inputPassword" class="sr-only">Password</label>
+      <input type="password" name="password" id="inputPasswordSignin" class="form-control" placeholder="Password" required>
+      <button type="submit" class="login-proceed btn btn-dark btn-block">Login</button>
+    </form>
+    <form id="form-resetpassword" class="form-resetpassword" style="display: none">
+      <h3>Reset Password</h3>
+      <label for="inputEmailResetPassword" class="sr-only">Email address</label>
+      <input type="email" name="email" id="inputEmailResetPassword" class="form-control" placeholder="Email address" required><br>
+      <button type="submit" class="resetpassword-proceed btn btn-dark btn-block">Reset Password</button>
+    </form>    
+    <div class="loginerror alert alert-danger" style="display: none">
+      <strong>Error:</strong> <span class="errmsg">Username/Password does not exist</span>
+    </div>    
+    <a id="signup-link" class="signup-link" href="#"><i class="fa fa-info-circle" aria-hidden="true"></i> Not Registered yet? Create an account!</a><br>
+    <a id="passwordreset-link" class="passwordreset-link" href="#"><i class="fa fa-info-circle" aria-hidden="true"></i> Forgot your Password? Click here!</a>
+  </div> <!--end user-login-header -->
+</div> <!--end user-login -->
+
+<div class="user-registration">
+  <div class="user-registration-header">
+    <form id="form-signup" class="form-signup">
+      <h3>Sign-up</h3>
+      <label for="inputFirstname" class="sr-only">Firstname</label>
+      <input type="text" id="inputFirstname" name="firstname" class="form-control" placeholder="Firstname" required>
+      <label for="inputLastname" class="sr-only">Lastname</label>
+      <input type="text" id="inputLastname" name="lastname" class="form-control" placeholder="Lastname" required>
+      <label for="inputBirthdate" class="sr-only">Birthdate</label>
+      <input type="date" id="inputBirthdate" name="birthdate" class="form-control" placeholder="Birthdate" required>
+      <label for="inputStreet" class="sr-only">Street</label>
+      <input type="text" id="inputUsername" name="street" class="form-control" placeholder="Street" required>
+      <label for="inputCity" class="sr-only">City</label>
+      <input type="text" id="inputCity" name="city" class="form-control" placeholder="City" required>
+      <label for="inputPostal" class="sr-only">Postal</label>
+      <input type="text" id="inputPostal" name="postal" class="form-control" placeholder="Postal" required>
+      <label for="inputEmail" class="sr-only">Email address</label>
+      <input type="email" id="inputEmail" name="email" class="form-control" placeholder="Email address" required>
+      <label for="inputPhone" class="sr-only">Phone</label>
+      <input type="text" id="inputPhone" name="phone" class="form-control" placeholder="Phone" required>
+      <label for="inputPassword" class="sr-only">Password</label>
+      <input type="password" minlength="6" id="inputPassword" name="password" class="form-control" placeholder="Password" required>
+      <button type="submit" class="login-proceed btn btn-dark btn-block">Register Now</button>
+    </form>
+    <div class="signerror alert alert-danger" style="display: none">
+      <strong>Error:</strong> <span class="signerrmsg"></span>
+    </div>  
+    <a id="signup-link" class="signin-link" href="#"><i class="fa fa-info-circle" aria-hidden="true"></i> Already Registered? Sign-in!</a>
+  </div> <!--end user-login-header -->
+</div> <!--end user-login -->
+
+<div class="user-update">
+  <div class="user-update-header">
+    <form id="form-edit-user" class="form-signup">
+      <h3>Update user info</h3>
+      <label for="inputUpdFirstname" class="sr-only">Firstname</label>
+      <input type="text" id="inputUpdFirstname" name="firstname" class="form-control" placeholder="Firstname" required>
+      <label for="inputUpdLastname" class="sr-only">Lastname</label>
+      <input type="text" id="inputUpdLastname" name="lastname" class="form-control" placeholder="Lastname" required>
+      <label for="inputUpdBirthdate" class="sr-only">Birthdate</label>
+      <input type="date" id="inputUpdBirthdate" name="birthdate" class="form-control" placeholder="Birthdate" required>
+      <label for="inputUpdStreet" class="sr-only">Street</label>
+      <input type="text" id="inputUpdUsername" name="street" class="form-control" placeholder="Street" required>
+      <label for="inputUpdCity" class="sr-only">City</label>
+      <input type="text" id="inputUpdCity" name="city" class="form-control" placeholder="City" required>
+      <label for="inputUpdPostal" class="sr-only">Postal</label>
+      <input type="text" id="inputUpdPostal" name="postal" class="form-control" placeholder="Postal" required>
+      <label for="inputUpdEmail" class="sr-only">Email address</label>
+      <input type="email" id="inputUpdEmail" name="email" class="form-control" placeholder="Email address" required>
+      <label for="inputUpdPhone" class="sr-only">Phone</label>
+      <input type="text" id="inputUpdPhone" name="phone" class="form-control" placeholder="Phone" required>
+      <label for="inputUpdPassword" class="sr-only">Password</label>
+      <input type="password" minlength="6" id="inputUpdPassword" name="password" class="pass form-control" placeholder="Password" required>
+      <label for="inputUpdPassword" class="sr-only">Re-type Password</label>
+      <input type="password" minlength="6" id="inputUpdRetypePassword" name="passwordRetype" class="pass form-control" placeholder="Re-type Password" required>
+      <button type="submit" class="login-proceed btn btn-dark btn-block">Update</button>
+    </form>
+    <div class="upderror alert alert-danger" style="display: none">
+      <strong>Error:</strong> <span class="upderrmsg"></span>
+    </div>  
+  </div> <!--end user-login-header -->
+</div> <!--end user-login -->
 
 
   <div class="shopping-cart">
@@ -38,7 +145,7 @@
 
     <ul class="shopping-cart-items">
     </ul>
-
+    <div class="checkout-user-alert"><i class="fa fa-window-close" aria-hidden="true"></i> You need to be logged to proceed</div>
     <button type="button" class="checkout-proceed btn btn-dark btn-block">Checkout</button>
     <button type="button" class="btn btn-danger emptyCart btn-block">Remove all products</button>
   </div> <!--end shopping-cart -->

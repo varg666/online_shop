@@ -1,9 +1,13 @@
+/* eslint-disable */
+
 //  import core files
 import $ from 'jquery';
 import 'bootstrap/js/src';
 import './styles.scss';
 import navbarTemplate from './templates/navbar.html';
 import modalTemplate from './templates/modal.html';
+import activationModalTemplate from './templates/activationmodal.html';
+import resetPasswordModalTemplate from './templates/resetpasswordmodal.html';
 import checkoutTemplate from './templates/checkout.html';
 import paymentMethodRadioTemplate from './templates/payment-method-radio.html';
 import mkCarousel from './carousel';
@@ -66,10 +70,30 @@ $(() => {
     });
   }
 
+  $('.loginerror').hide();
+
+  //  show nav button only for logged users
+  function loggedUser() {
+    $('#user-signed-link').show();
+    $('#user-signout-link').show();
+    $('#user-signin-link').hide();
+    $('#user-signup-link').hide();
+  }
+
+  // show nav button for guest users
+  function guestUser() {
+    $('#user-signed-link').hide();
+    $('#user-signout-link').hide();
+    $('#user-signin-link').show();
+    $('#user-signup-link').show();
+  }
+
   $('#root')
     // we keep that outside of the page content
     // because when we click on product details
     // we replace its content
+    .append(activationModalTemplate)
+    .append(resetPasswordModalTemplate)
     // (rather than creating the whole modal again)
     .append(modalTemplate)
     // the navbar stays accross the pages so
@@ -79,6 +103,49 @@ $(() => {
     // we will modify its own content later
     .append($pageContent);
 
+  // We check if the user is logged in or not - usefull on reload page
+  const notGuest = JSON.parse(localStorage.getItem('user'));
+  if (notGuest === null) {
+    guestUser();
+  } else {
+    loggedUser();
+    $('.logged').text(notGuest.firstname);
+  }
+
+  var urlParts = window.location.href.split('/');
+  var lastPart = urlParts[urlParts.length - 1];
+
+  if(lastPart.startsWith('activate')) {
+    var activationCode = lastPart.split('=')[1];
+   
+    $.ajax({
+      url: "http://localhost:9090/api/activate/" + activationCode,
+      method: "PUT",
+      contentType: "application/json",
+      dataType: "json",
+    })
+    .done(function(data) {
+      console.log('success', data);
+
+      if(data.error === 0) {
+        $('#activationModal').modal('show');
+      }
+      else {
+        console.log('user activation cancelled');
+      }
+    })
+    .fail(function(xhr) {
+      console.log('error', xhr);
+    });      
+
+
+    console.log('activationCode: ' + activationCode);   
+  }
+
+  if(lastPart.startsWith('resetpassword')) {    
+    $('#resetPasswordModal').modal({backdrop: 'static', keyboard: false})    
+  }
+  
   // in order to handle errors in consistent manner
   function handleAJAXError(xhr, status, error) {
     $pageContent
@@ -86,12 +153,276 @@ $(() => {
       .append(`<div>Ajax Error categories: ${error}</div>`);
   }
 
+  //  Hiding the cart and forms on page load
+  $('.shopping-cart').hide();
+  $('.user-login').hide();
+  $('.user-registration').hide();
+  $('.user-update').hide();
+
   // the #cart element is located in the navbar
   // (which has been add above)
   $('#cart').click(((e) => {
     e.preventDefault();
     $('.shopping-cart').toggle('slow');
+    if ($('.user-login').is(':visible')) {
+      $('.user-login').hide();
+    }
+    if ($('.user-registration').is(':visible')) {
+      $('.user-registration').hide();
+    }
+    if ($('.user-update').is(':visible')) {
+      $('.user-update').hide();
+    }
   }));
+
+  // the #user element is also located in the navbar
+  // (which has been add above)
+  $('#user-signin-link, .signin-link').click(((e) => {
+    e.preventDefault();
+    $('.user-login').toggle('slow');
+    $('#inputUsername').focus();
+    if ($('.shopping-cart').is(':visible')) {
+      $('.shopping-cart').hide();
+    }
+    if ($('.user-registration').is(':visible')) {
+      $('.user-registration').hide();
+    }
+    if ($('.user-update').is(':visible')) {
+      $('.user-update').hide();
+    }
+    $('#form-resetpassword').hide();
+  }));
+
+  $('#passwordreset-link, .passwordreset-link').click( (e) => {
+    e.preventDefault();
+    $('#form-resetpassword').show();
+    $('#form-signin').hide();
+  });
+
+  // preventing default Submit event
+  $('#form-signin').on('submit', ((e) => {
+    e.preventDefault();
+    // randomly select one user from the database at the beginning,
+    // so that we have one user for ordering and checkout
+    localStorage.removeItem('user');
+      $.ajax({
+        url: "http://localhost:9090/api/login",
+        method: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({
+           email: $('#form-signin input[name=email]').val(), 
+           password: $('#form-signin input[name=password]').val()
+        })
+      })
+      .done(function(data) {
+        console.log('success', data);
+
+        if(data.err) {
+          $('.loginerror').show();
+          $('.errmsg').text(data.err);
+        }
+        else {
+          const user = data;
+          console.log( $(".user-registration-header form").attr('id') );
+          loggedUser();
+          $('.logged').text(user.firstname);
+          localStorage.setItem('user', JSON.stringify(user));
+          $('.user-login').toggle('slow');
+        }
+      })
+      .fail(function(xhr) {
+        console.log('error', xhr);
+      });      
+  }));
+
+  $('#form-resetpassword').on('submit', ((e) => {
+    e.preventDefault();
+      $.ajax({
+        url: "http://localhost:9090/api/resetpassword",
+        method: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({
+           email: $('#form-resetpassword input[name=email]').val()
+        })
+      })
+      .done(function(data) {
+        console.log('success', data);
+
+        if(data) {
+          $('.user-login').toggle('slow');
+        }
+        else {
+
+        }
+      })
+      .fail(function(xhr) {
+        console.log('error', xhr);
+      });      
+  }));
+
+  // click on signup button
+  $('#user-signup-link, .signup-link').click(((e) => {
+    e.preventDefault();
+    console.log( $(".user-registration-header form").attr('id') );
+    $('.user-registration').toggle('slow');
+    if ($('.shopping-cart').is(':visible')) {
+      $('.shopping-cart').hide();
+    }
+    if ($('.user-login').is(':visible')) {
+      $('.user-login').hide();
+    }
+    if ($('.user-update').is(':visible')) {
+      $('.user-update').hide();
+    }
+  }));
+
+
+  // click on signed-in button to edit user info
+  $('#user-signed-link').click(((e) => {
+    e.preventDefault();
+    console.log( $(".user-registration-header form").attr('id') );
+    $('.user-update').toggle('slow');
+    if ($('.shopping-cart').is(':visible')) {
+      $('.shopping-cart').hide();
+    }
+    if ($('.user-login').is(':visible')) {
+      $('.user-login').hide();
+    }
+    // get the user information from the local storage
+    const user = JSON.parse(localStorage.getItem('user'));
+    // change the field values accordingly
+
+
+    $('#form-edit-user').append('<input type="hidden" name="id" />');
+    $('#form-edit-user [name="id"]').val(`${user.id}`);
+    $('#form-edit-user [name="firstname"]').val(`${user.firstname}`);
+    $('#form-edit-user [name="lastname"]').val(`${user.lastname}`);
+    $('#form-edit-user [name="birthdate"]').val(`${user.birthdate.substring(0,10)}`);
+    $('#form-edit-user [name="street"]').val(`${user.street}`);
+    $('#form-edit-user [name="city"]').val(`${user.city}`);
+    $('#form-edit-user [name="postal"]').val(`${user.postal}`);
+    $('#form-edit-user [name="phone"]').val(`${user.phone}`);
+    $('#form-edit-user [name="email"]').val(`${user.email}`);
+    $('#form-edit-user [name="password"]').val();
+  }));
+
+  //  click on signout button
+  $('#user-signout').click(((e) => {
+    e.preventDefault();
+    guestUser();
+    
+    console.log( $(".user-registration-header form").attr('id') );
+    
+    $('.checkout-proceed').attr('disabled', true);
+    $('.checkout-user-alert').show();
+    if($('.user-registration').is(':visible'))
+      $('.user-registration').hide('slow');
+    localStorage.removeItem('user');
+  }));
+
+  // signup form submit
+  $('#form-signup').on('submit', ((e) => {
+    e.preventDefault();
+    // retrieve registration info from the form and
+    // save a new user in localStorage
+    localStorage.removeItem('user');
+    const user = {};
+    user.firstname = $('#form-signup input[name=firstname]').val();
+    user.lastname = $('#form-signup input[name=lastname]').val();
+    user.street = $('#form-signup input[name=street]').val();
+    user.city = $('#form-signup input[name=city]').val();
+    user.postal = $('#form-signup input[name=postal]').val();
+    user.birthdate = $('#form-signup input[name=birthdate]').val();
+    user.email = $('#form-signup input[name=email]').val();
+    user.phone = $('#form-signup input[name=phone]').val();
+    user.password = $('#form-signup input[name=password]').val();
+
+      $.ajax({
+        url: "http://localhost:9090/api/register",
+        method: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify(user)
+      })
+      .done(function(data) {
+        console.log('success', data);
+
+        if(data.err || data.code) {
+          $('.signerror').show();
+          $('.signerrmsg').text(data.err);
+        }
+        else {
+          const user = data;
+          localStorage.setItem('user', JSON.stringify(user));
+          loggedUser();
+          $('.logged').text(user.firstname);
+          $('.user-registration').toggle('slow');
+          $('signerror').hide()
+        }
+      })
+      .fail(function(xhr) {
+        console.log('error', xhr);
+      });      
+  }));
+
+  $('.pass').focusout(() => {
+          var pass = $('#inputUpdPassword').val();
+          var pass2 = $('#inputUpdRetypePassword').val();
+          if(pass !== pass2){
+            $('.upderror').show();
+            $('.upderrmsg').text('the passwords didn\'t match!');
+          }else{
+            $('.upderror').hide();
+          }
+      });
+  // signup form submit
+  $('#form-edit-user').on('submit', ((e) => {
+    e.preventDefault();
+    // retrieve registration info from the form and
+    // save a new user in localStorage
+    localStorage.removeItem('user');
+    const user = {};
+    user.id = $('#form-edit-user input[name=id]').val();
+    user.firstname = $('#form-edit-user input[name=firstname]').val();
+    user.lastname = $('#form-edit-user input[name=lastname]').val();
+    user.street = $('#form-edit-user input[name=street]').val();
+    user.city = $('#form-edit-user input[name=city]').val();
+    user.postal = $('#form-edit-user input[name=postal]').val();
+    user.birthdate = $('#form-edit-user input[name=birthdate]').val();
+    user.email = $('#form-edit-user input[name=email]').val();
+    user.phone = $('#form-edit-user input[name=phone]').val();
+    user.password = $('#form-edit-user input[name=password]').val();
+
+      $.ajax({
+        url: "http://localhost:9090/api/update",
+        method: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify(user)
+      })
+      .done(function(data) {
+        console.log('success', data);
+
+        if(data.err) {
+          $('.signerror').show();
+          $('.signerrmsg').text(data.err);
+        }
+        else {
+          const user = data;
+          localStorage.setItem('user', JSON.stringify(user));
+          //  loggedUser();
+          $('.logged').text(user.firstname);
+          $('.user-update').toggle('slow');
+          $('signerror').hide()
+        }
+      })
+      .fail(function(xhr) {
+        console.log('error', xhr);
+      });      
+  }));
+
 
   // the checkout button is located in the navbar too
   $('.checkout-proceed').click(() => {
@@ -127,6 +458,7 @@ $(() => {
         products: storedProducts,
         user: {
           id: user.id,
+          email: user.email,
           name: $checkout.find('[name="user-name"]').val(),
           street: $checkout.find('[name="user-street"]').val(),
           city: $checkout.find('[name="user-city"]').val(),
@@ -134,10 +466,14 @@ $(() => {
         payment_method: $checkout.find('[name="payment"]:checked').val(),
       });
       // to send a POST request to the server
+      var userToken = JSON.parse(localStorage.getItem('user')).token;
       $.ajax('http://localhost:9090/api/order', {
         method: 'POST',
+        headers: {
+          authorization: 'Bearer ' + userToken
+        },        
         // the content-type of the request has to be application/json
-        // in order for the server to be able to read the body (of the request)
+        // in order for the spaerver to be able to read the body (of the request)
         contentType: 'application/json',
         data,
       })
@@ -198,9 +534,8 @@ $(() => {
       });
 
     // close the cart widget
-    $('.shopping-cart').hide('slow');
+    $('.shopping-cart').hide();
   });
-
 
   // we will trick the $pageContent to add a padding top
   // equivalent to the navbar outer height
@@ -226,12 +561,7 @@ $(() => {
     })
     //  or fail trying
     .fail(handleAJAXError);
-  // randomly select one user from the database at the beginning,
-  // so that we have one user for ordering and checkout
-  $.ajax('http://localhost:9090/api/customers')
-    .done((customers) => {
-      const user = JSON.stringify(customers[Math.floor(Math.random(customers.length))]);
-      localStorage.setItem('user', user);
-    });
   // End
 });
+
+
