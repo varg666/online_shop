@@ -5,7 +5,7 @@ const app = express();
 app.use(bodyParser());
 
 const users = [
-	{ email: 'dcishop2018@gmail.com', password: 'demonhunter' },
+	{ email: 'user1@gmail.com', password: 'hallo1' },
 	{ email: 'user2@gmail.com', password: 'hallo2' },
 	{ email: 'user3@gmail.com', password: 'hallo3' }
 ];
