@@ -7,7 +7,7 @@ function sendMail(recipientAddress, subject, body) {
 		secure: true,
 		auth: {
 			user: 'dcishop2018@gmail.com',
-			pass: 'demonhunter'
+			pass: '010'
 		}
 	};
 						
